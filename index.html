@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kitty幸运抽奖盘</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial Rounded MT Bold', 'Arial', sans-serif;
+        }
+        body {
+            /* 可爱波点背景+Kitty元素 */
+            background-color: #fdf2f8;
+            background-image:
+                radial-gradient(#ffc1e9 8px, transparent 8px),
+                radial-gradient(#ffc1e9 8px, transparent 8px);
+            background-size: 50px 50px;
+            background-position: 0 0, 25px 25px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+        /* 漂浮Kitty装饰 */
+        .kitty-decoration {
+            position: absolute;
+            font-size: 2.5rem;
+            opacity: 0.4;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .kitty-1 { top: 8%; left: 5%; transform: rotate(-10deg); }
+        .kitty-2 { top: 15%; right: 8%; transform: rotate(15deg); }
+        .kitty-3 { bottom: 12%; left: 10%; transform: rotate(5deg); }
+        .kitty-4 { bottom: 20%; right: 6%; transform: rotate(-15deg); }
+        .kitty-5 { top: 60%; left: 3%; transform: rotate(8deg); }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 800px;
+            width: 100%;
+            position: relative;
+            z-index: 2;
+        }
+        h1 {
+            color: #d946ef;
+            text-align: center;
+            margin-bottom: 12px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 0 #fef7fb;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        h1::before, h1::after {
+            content: "🐱";
+            font-size: 2rem;
+        }
+        .subtitle {
+            color: #be185d;
+            text-align: center;
+            margin-bottom: 25px;
+            font-size: 1.1rem;
+            background-color: #fff;
+            padding: 8px 20px;
+            border-radius: 50px;
+            box-shadow: 0 4px 12px rgba(217, 70, 239, 0.15);
+        }
+        .lottery-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+            width: 100%;
+        }
+        /* 转盘样式 */
+        .wheel-container {
+            position: relative;
+            width: 380px;
+            height: 380px;
+        }
+        .wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 0 12px #ffd6e8, 0 15px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 4.5s cubic-bezier(0.17, 0.67, 0.21, 0.99);
+            background-color: #fff;
+        }
+        .wheel-item {
+            position: absolute;
+            width: 50%;
+            height: 50%;
+            transform-origin: 100% 100%;
+            left: 0;
+            top: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+            font-weight: bold;
+            font-size: 18px;
+            text-align: center;
+            padding-left: 50px;
+            padding-bottom: 25px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+        }
+        /* 转盘中心 */
+        .wheel-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 55px;
+            height: 55px;
+            background: #d946ef;
+            border-radius: 50%;
+            z-index: 5;
+            box-shadow: 0 0 8px rgba(0,0,0,0.2);
+        }
+        /* 指针样式 */
+        .pointer {
+            position: absolute;
+            top: -35px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 35px;
+            height: 60px;
+            z-index: 10;
+            filter: drop-shadow(0 4px 4px rgba(0,0,0,0.2));
+        }
+        .pointer::before {
+            content: "";
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 17.5px solid transparent;
+            border-right: 17.5px solid transparent;
+            border-top: 60px solid #d946ef;
+        }
+        .pointer::after {
+            content: "";
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 25px;
+            height: 25px;
+            background: #fef7fb;
+            border-radius: 50%;
+            border: 3px solid #d946ef;
+        }
+        /* 按钮样式 */
+        .spin-btn {
+            background: linear-gradient(135deg, #d946ef, #be185d);
+            color: white;
+            border: none;
+            padding: 16px 38px;
+            font-size: 1.4rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 6px 0 #9d174d;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        .spin-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 9px 0 #9d174d;
+        }
+        .spin-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 0 #9d174d;
+        }
+        .spin-btn:disabled {
+            background: linear-gradient(135deg, #e9d5ff, #c084fc);
+            box-shadow: 0 6px 0 #a855f7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        /* 中奖结果 */
+        .result-card {
+            margin-top: 10px;
+            padding: 18px;
+            background-color: #fff;
+            border-radius: 15px;
+            width: 100%;
+            max-width: 350px;
+            text-align: center;
+            box-shadow: 0 8px 20px rgba(217, 70, 239, 0.15);
+            border: 4px dashed #ffd6e8;
+            display: none;
+        }
+        .result-card h3 {
+            color: #d946ef;
+            margin-bottom: 10px;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .prize-result {
+            font-size: 1.8rem;
+            color: #be185d;
+            font-weight: bold;
+            margin: 12px 0;
+            padding: 12px;
+            background-color: #fef7fb;
+            border-radius: 10px;
+            border: 2px solid #ffd6e8;
+        }
+        .tip-text {
+            color: #6b7280;
+            font-size: 0.9rem;
+            margin-top: 8px;
+        }
+        /* 抽奖限制提示 */
+        .limit-tip {
+            color: #be185d;
+            font-size: 1rem;
+            margin-top: 15px;
+            background-color: #fef7fb;
+            padding: 8px 16px;
+            border-radius: 20px;
+            box-shadow: 0 3px 8px rgba(217, 70, 239, 0.1);
+            display: none;
+        }
+        /* 响应式适配手机 */
+        @media (max-width: 480px) {
+            .wheel-container {
+                width: 300px;
+                height: 300px;
+            }
+            .wheel-item {
+                font-size: 16px;
+                padding-left: 40px;
+                padding-bottom: 20px;
+            }
+            h1 {
+                font-size: 2rem;
+            }
+            .spin-btn {
+                padding: 14px 32px;
+                font-size: 1.2rem;
+            }
+        }
+        /* 飘落爱心动画 */
+        @keyframes fall {
+            0% { top: -50px; opacity: 0.8; transform: rotate(0deg); }
+            100% { top: 100vh; opacity: 0; transform: rotate(360deg); }
+        }
+        .falling-heart {
+            position: fixed;
+            font-size: 20px;
+            pointer-events: none;
+            z-index: 100;
+            animation: fall 3s ease-in-out forwards;
+        }
+    </style>
+</head>
+<body>
+    <!-- 漂浮Kitty装饰 -->
+    <div class="kitty-decoration kitty-1">🐱</div>
+    <div class="kitty-decoration kitty-2">🐱</div>
+    <div class="kitty-decoration kitty-3">🐱</div>
+    <div class="kitty-decoration kitty-4">🐱</div>
+    <div class="kitty-decoration kitty-5">🐱</div>
+
+    <div class="container">
+        <h1>Kitty幸运抽奖盘</h1>
+        <p class="subtitle">24小时内仅可抽奖1次，点击按钮赢取超值优惠～</p>
+
+        <div class="lottery-wrap">
+            <!-- 转盘区域 -->
+            <div class="wheel-container">
+                <div class="wheel" id="wheel"></div>
+                <div class="wheel-center"></div>
+                <div class="pointer"></div>
+            </div>
+
+            <!-- 抽奖按钮 -->
+            <button class="spin-btn" id="spinBtn">
+                <<i class="fas fa-redo-alt"></</i> 立即抽奖
+            </button>
+
+            <!-- 抽奖限制提示 -->
+            <div class="limit-tip" id="limitTip">
+                <<i class="fas fa-clock"></</i> 今日抽奖次数已用完，明天再来哦～
+            </div>
+
+            <!-- 中奖结果 -->
+            <div class="result-card" id="resultCard">
+                <h3><<i class="fas fa-trophy"></</i> 恭喜中奖！</h3>
+                <p>您抽中的奖品是：</p>
+                <div class="prize-result" id="prizeResult">减3元优惠券</div>
+                <p class="tip-text">请截图保存，联系客服兑换～</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 奖品配置
+            const prizes = ["减3元", "减5元", "减10元", "减15元", "减20元", "免单"];
+            // 可爱渐变色系
+            const colors = [
+                "#ff6b9d", "#ff85a8", "#ffb6d9",
+                "#d946ef", "#c084fc", "#a78bfa"
+            ];
+
+            const wheel = document.getElementById('wheel');
+            const spinBtn = document.getElementById('spinBtn');
+            const resultCard = document.getElementById('resultCard');
+            const prizeResult = document.getElementById('prizeResult');
+            const limitTip = document.getElementById('limitTip');
+            let isSpinning = false;
+
+            // 检查24小时内是否已抽奖（本地存储记录）
+            const lastDrawTime = localStorage.getItem('lastLotteryTime');
+            const now = new Date().getTime();
+            const twentyFourHours = 24 * 60 * 60 * 1000; // 24小时毫秒数
+
+            if (lastDrawTime && now - parseInt(lastDrawTime) < twentyFourHours) {
+                // 已抽奖，禁用按钮并显示提示
+                spinBtn.disabled = true;
+                spinBtn.innerHTML = '<<i class="fas fa-lock"></</i> 今日已抽奖';
+                limitTip.style.display = 'block';
+            }
+
+            // 初始化转盘（奖品均匀分布）
+            function initWheel() {
+                wheel.innerHTML = '';
+                const anglePerPrize = 360 / prizes.length; // 每个奖品60度
+
+                prizes.forEach((prize, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'wheel-item';
+                    item.textContent = prize + (prize !== '免单' ? '优惠券' : '大奖');
+                    item.style.backgroundColor = colors[index];
+                    // 计算每个奖品的旋转角度
+                    item.style.transform = `rotate(${index * anglePerPrize}deg) skewY(${90 - anglePerPrize}deg)`;
+                    wheel.appendChild(item);
+                });
+            }
+
+            // 旋转转盘逻辑
+            function spinWheel() {
+                if (isSpinning || spinBtn.disabled) return;
+                isSpinning = true;
+                spinBtn.disabled = true;
+                spinBtn.innerHTML = '<<i class="fas fa-spinner fa-spin"></</i> 抽奖中...';
+                resultCard.style.display = 'none';
+
+                // 随机选中奖品
+                const randomIndex = Math.floor(Math.random() * prizes.length);
+                const selectedPrize = prizes[randomIndex];
+
+                // 计算旋转角度（至少5圈+目标角度）
+                const anglePerPrize = 360 / prizes.length;
+                const targetAngle = randomIndex * anglePerPrize + anglePerPrize / 2; // 指向奖品中心
+                const totalSpinAngle = 360 * 5 + (360 - targetAngle); // 多转5圈更自然
+
+                // 执行旋转动画
+                wheel.style.transform = `rotate(${totalSpinAngle}deg)`;
+
+                // 旋转结束后显示结果
+                setTimeout(() => {
+                    prizeResult.textContent = selectedPrize + (selectedPrize !== '免单' ? '优惠券' : '大奖');
+                    resultCard.style.display = 'block';
+                    spinBtn.innerHTML = '<<i class="fas fa-check"></</i> 抽奖完成';
+
+                    // 记录抽奖时间（本地存储）
+                    localStorage.setItem('lastLotteryTime', now.toString());
+                    limitTip.style.display = 'block';
+
+                    // 生成飘落爱心效果
+                    createFallingHearts();
+                    isSpinning = false;
+                }, 4500); // 与旋转动画时长一致
+            }
+
+            // 飘落爱心庆祝效果
+            function createFallingHearts() {
+                for (let i = 0; i < 12; i++) {
+                    const heart = document.createElement('div');
+                    heart.className = 'falling-heart';
+                    heart.innerHTML = '❤️';
+                    // 随机位置和大小
+                    heart.style.left = `${Math.random() * 100}vw`;
+                    heart.style.fontSize = `${Math.random() * 15 + 15}px`;
+                    heart.style.animationDuration = `${Math.random() * 2 + 2}s`;
+                    document.body.appendChild(heart);
+
+                    // 动画结束后移除元素
+                    setTimeout(() => {
+                        heart.remove();
+                    }, 3000);
+                }
+            }
+
+            // 绑定事件
+            spinBtn.addEventListener('click', spinWheel);
+
+            // 初始化转盘
+            initWheel();
+        });
+    </script>
+</body>
+</html>
